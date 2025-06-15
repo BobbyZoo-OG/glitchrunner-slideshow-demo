@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glitch Runner Slideshow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .slideshow-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        .slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: rgba(0, 255, 100, 0.2);
+            border: 2px solid #00ff64;
+            color: #00ff64;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 100, 0.4);
+            box-shadow: 0 0 10px #00ff64;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(0, 255, 100, 0.2);
+            border: 1px solid #00ff64;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff64, #64ff00);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .slide-counter {
+            color: #00ff64;
+            font-size: 12px;
+            text-shadow: 0 0 5px #00ff64;
+        }
+
+        /* Glitch effect for transitions */
+        .slide.glitch {
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        /* Audio controls styling */
+        audio {
+            display: none;
+        }
+
+        .audio-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #00ff64;
+            font-size: 12px;
+            text-shadow: 0 0 5px #00ff64;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 1px solid #00ff64;
+        }
+    </style>
+</head>
+<body>
+    <div class="slideshow-container">
+        <!-- Note: You'll need to replace these src attributes with your actual image files -->
+        <div class="slide active">
+            <img src="image1.jpg" alt="Speed Bonus Active" />
+        </div>
+        <div class="slide">
+            <img src="image2.jpg" alt="Boss Zone" />
+        </div>
+        <div class="slide">
+            <img src="image3.jpg" alt="Nightcore Zone" />
+        </div>
+        <div class="slide">
+            <img src="image4.jpg" alt="Teleport Node" />
+        </div>
+        <div class="slide">
+            <img src="image5.jpg" alt="Game Over" />
+        </div>
+        <div class="slide">
+            <img src="image6.jpg" alt="Running Scene 1" />
+        </div>
+        <div class="slide">
+            <img src="image7.jpg" alt="Running Scene 2" />
+        </div>
+        <div class="slide">
+            <img src="image8.jpg" alt="Distance Counter" />
+        </div>
+        <div class="slide">
+            <img src="image9.jpg" alt="Running Scene 3" />
+        </div>
+    </div>
+
+    <!-- Audio element - replace with your MP3 file -->
+    <audio id="backgroundMusic" loop>
+        <source src="background_music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <div class="controls">
+        <button class="control-btn" onclick="togglePlayPause()">Play/Pause</button>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">9</span>
+        </div>
+        <button class="control-btn" onclick="toggleMusic()">Music On/Off</button>
+    </div>
+
+    <div class="audio-info">
+        <div>🎵 Background Music</div>
+        <div id="musicStatus">Click to enable audio</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        let isPlaying = true;
+        let slideInterval;
+        let progressInterval;
+        let startTime;
+        
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const slideDuration = 60000 / totalSlides; // ~6.67 seconds per slide
+        const audio = document.getElementById('backgroundMusic');
+        
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'glitch');
+                if (i === index) {
+                    slide.classList.add('glitch');
+                    setTimeout(() => {
+                        slide.classList.add('active');
+                        slide.classList.remove('glitch');
+                    }, 150);
+                }
+            });
+            
+            document.getElementById('currentSlide').textContent = index + 1;
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            showSlide(currentSlide);
+        }
+
+        function startSlideshow() {
+            startTime = Date.now();
+            slideInterval = setInterval(nextSlide, slideDuration);
+            progressInterval = setInterval(updateProgress, 100);
+        }
+
+        function stopSlideshow() {
+            clearInterval(slideInterval);
+            clearInterval(progressInterval);
+        }
+
+        function updateProgress() {
+            if (!isPlaying) return;
+            
+            const elapsed = Date.now() - startTime;
+            const cycleTime = elapsed % 60000; // 60 second cycle
+            const progress = (cycleTime / 60000) * 100;
+            
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                stopSlideshow();
+                audio.pause();
+                isPlaying = false;
+            } else {
+                startSlideshow();
+                audio.play().catch(e => console.log('Audio play failed:', e));
+                isPlaying = true;
+            }
+        }
+
+        function toggleMusic() {
+            if (audio.paused) {
+                audio.play().catch(e => {
+                    console.log('Audio play failed:', e);
+                    document.getElementById('musicStatus').textContent = 'Audio failed to play';
+                });
+            } else {
+                audio.pause();
+            }
+        }
+
+        // Update audio status
+        audio.addEventListener('play', () => {
+            document.getElementById('musicStatus').textContent = 'Music Playing';
+        });
+
+        audio.addEventListener('pause', () => {
+            document.getElementById('musicStatus').textContent = 'Music Paused';
+        });
+
+        audio.addEventListener('error', (e) => {
+            document.getElementById('musicStatus').textContent = 'Music file not found';
+        });
+
+        // Auto-start with user interaction
+        document.addEventListener('click', function startEverything() {
+            if (!slideInterval) {
+                startSlideshow();
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            }
+            document.removeEventListener('click', startEverything);
+        }, { once: true });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'KeyM':
+                    toggleMusic();
+                    break;
+                case 'ArrowLeft':
+                    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+                    showSlide(currentSlide);
+                    break;
+                case 'ArrowRight':
+                    nextSlide();
+                    break;
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
